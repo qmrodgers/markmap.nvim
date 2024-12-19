@@ -18,7 +18,7 @@ M.setup = function(opts)
   cmd("MarkmapOpen", function()
     config = vim.g.markmap_config
     arguments = utils.reset_arguments()
-    local path = '"' .. vim.fn.expand("%:p") .. '"'  -- current buffer path
+    local path = '"' .. vim.fs.normalize(vim.fn.expand("%:p")) .. '"' -- current buffer path
     table.insert(arguments, path)
     if job ~= nil then jobstop(job) end
     job = jobstart(config.markmap_cmd, arguments)
@@ -27,25 +27,29 @@ M.setup = function(opts)
   cmd("MarkmapSave", function()
     config = vim.g.markmap_config
     arguments = utils.reset_arguments()
-    local path = '"' .. vim.fn.expand("%:p") .. '"' -- current buffer path
-    table.insert(arguments, "--no-open")            -- specific to this command
+    local path = '"' .. vim.fs.normalize(vim.fn.expand("%:p")) .. '"' -- current buffer path
+    table.insert(arguments, "--no-open") -- specific to this command
     table.insert(arguments, path)
-    if job ~= nil then jobstop(job) end             -- kill jobs
+    if job ~= nil then jobstop(job) end -- kill jobs
     job = jobstart(config.markmap_cmd, arguments)
   end, { desc = "Save the HTML file without opening the mindmap" })
 
-  cmd("MarkmapWatch", function()
-    config = vim.g.markmap_config
-    arguments = utils.reset_arguments()
-    local path = '"' .. vim.fn.expand("%:p") .. '"' -- current buffer path
-    table.insert(arguments, "--watch")              -- spetific to this command
-    table.insert(arguments, path)
-    if job ~= nil then jobstop(job) end             -- kill jobs
-    job = jobstart(config.markmap_cmd, arguments)
-  end, { desc = "Show a mental map of the current file and watch for changes" })
+  cmd(
+    "MarkmapWatch",
+    function()
+      config = vim.g.markmap_config
+      arguments = utils.reset_arguments()
+      local path = '"' .. vim.fs.normalize(vim.fn.expand("%:p")) .. '"' -- current buffer path
+      table.insert(arguments, "--watch") -- spetific to this command
+      table.insert(arguments, path)
+      if job ~= nil then jobstop(job) end -- kill jobs
+      job = jobstart(config.markmap_cmd, arguments)
+    end,
+    { desc = "Show a mental map of the current file and watch for changes" }
+  )
 
   cmd("MarkmapWatchStop", function()
-    if job ~= nil then jobstop(job) end             -- kill jobs
+    if job ~= nil then jobstop(job) end -- kill jobs
   end, { desc = "Manually stops markmap watch" })
 
   -- Autocmds -----------------------------------------------------------------
@@ -57,15 +61,15 @@ M.setup = function(opts)
     callback = function()
       -- If grace_periodd is disabled, remove the autocmd and return
       if config.grace_period == 0 then
-        vim.cmd "autocmd! markmap_kill_after_grace_period"
+        vim.cmd("autocmd! markmap_kill_after_grace_period")
         return
       end
 
       -- Otherwise, use grace_period
       local current_time = vim.uv.now()
       if current_time - last_execution >= config.grace_period then -- if grace period exceeded
-        if job ~= nil then jobstop(job) end                        -- pkill jobs
-        last_execution = current_time                              -- update time
+        if job ~= nil then jobstop(job) end -- pkill jobs
+        last_execution = current_time -- update time
       end
     end,
   })
